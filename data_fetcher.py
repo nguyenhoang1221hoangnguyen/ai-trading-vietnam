@@ -27,6 +27,36 @@ class DataFetcher:
         # Không khởi tạo Company và Listing ở đây vì chúng cần symbol
         pass
     
+    def _get_yfinance_data(self, symbol, start_date, end_date):
+        """Lấy dữ liệu từ yfinance (ưu tiên vì ổn định hơn)"""
+        try:
+            import yfinance as yf
+            ticker = f"{symbol}.VN"
+            
+            df_yf = yf.download(
+                ticker, 
+                start=start_date, 
+                end=end_date, 
+                interval='1d', 
+                progress=False, 
+                auto_adjust=False
+            )
+            
+            if df_yf is not None and not df_yf.empty:
+                df_yf.columns = df_yf.columns.str.lower().str.replace(' ', '_')
+                if 'adj_close' in df_yf.columns:
+                    df_yf['close'] = df_yf['adj_close']
+                df_yf = df_yf.sort_index()
+                
+                # Kiểm tra có đủ cột cần thiết
+                required_columns = ['open', 'high', 'low', 'close', 'volume']
+                if all(col in df_yf.columns for col in required_columns):
+                    return df_yf
+                    
+        except Exception as e:
+            pass
+        return None
+    
     @st.cache_data(ttl=3600)  # Cache trong 1 giờ
     def get_stock_data(_self, symbol, period='1Y', resolution='1D', start_date=None, end_date=None):
         """
@@ -56,7 +86,12 @@ class DataFetcher:
             else:
                 start_date = end_date - timedelta(days=365)
             
-            # Khởi tạo biến
+            # 1. Thử yfinance trước (ổn định hơn vnstock)
+            df = _self._get_yfinance_data(symbol, start_date, end_date)
+            if df is not None and not df.empty:
+                return df
+            
+            # 2. Nếu yfinance fail, thử vnstock với retry logic
             df = None
             last_error = None
             
@@ -65,7 +100,7 @@ class DataFetcher:
                 import time
                 
                 # Thử với retry logic và delay tốt hơn cho cloud
-                max_retries = 3
+                max_retries = 2  # Giảm retry cho vnstock vì thường fail
                 
                 for attempt in range(max_retries):
                     try:
@@ -143,47 +178,7 @@ class DataFetcher:
                 last_error = e1
                 # Tiếp tục để thử fallback
                 
-            # Fallback: thử với yfinance nếu vnstock thất bại
-            if (df is None or df.empty) or (hasattr(df, 'empty') and df.empty):
-                try:
-                    import yfinance as yf
-                    ticker = f"{symbol}.VN"
-                    
-                    # Thử với retry cho yfinance
-                    max_yf_retries = 2
-                    for yf_attempt in range(max_yf_retries):
-                        try:
-                            df_yf = yf.download(
-                                ticker, 
-                                start=start_date, 
-                                end=end_date, 
-                                interval='1d', 
-                                progress=False, 
-                                auto_adjust=False
-                            )
-                            
-                            if df_yf is not None and not df_yf.empty:
-                                df_yf.columns = df_yf.columns.str.lower().str.replace(' ', '_')
-                                if 'adj_close' in df_yf.columns:
-                                    df_yf['close'] = df_yf['adj_close']
-                                df_yf = df_yf.sort_index()
-                                
-                                # Kiểm tra có đủ cột không
-                                required_cols = ['open', 'high', 'low', 'close', 'volume']
-                                if all(col in df_yf.columns for col in required_cols):
-                                    return df_yf  # Trả về ngay nếu thành công
-                                else:
-                                    df = df_yf  # Vẫn lưu để có thể xử lý sau
-                                    break
-                        except Exception as yf_error:
-                            if yf_attempt < max_yf_retries - 1:
-                                time.sleep(2)
-                                continue
-                            else:
-                                pass
-                                
-                except Exception as e2:
-                    pass
+            # Bỏ qua fallback yfinance cũ vì đã được di chuyển lên trên
             
             # Nếu có dữ liệu từ bất kỳ nguồn nào, trả về
             if df is not None and not df.empty:
