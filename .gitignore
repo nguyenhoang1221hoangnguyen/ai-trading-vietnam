@@ -25,6 +25,8 @@ wheels/
 
 # Streamlit
 .streamlit/
+!.streamlit/config.toml
+.streamlit/secrets.toml
 
 # IDE
 .vscode/

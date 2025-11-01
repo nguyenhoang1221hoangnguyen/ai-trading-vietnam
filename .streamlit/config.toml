@@ -21,10 +21,16 @@ fastReruns = true
 magicEnabled = true
 
 [theme]
-# Theme mặc định
+# Theme mặc định - sử dụng màu hợp lệ
 primaryColor = "#1f77b4"
 backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#f0f2f6"
 textColor = "#262730"
 font = "sans serif"
+
+# Sidebar colors - thêm để tránh lỗi invalid color
+[theme.sidebar]
+widgetBackgroundColor = "#ffffff"
+widgetBorderColor = "#e6e6e6"
+skeletonBackgroundColor = "#f0f2f6"
 

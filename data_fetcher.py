@@ -81,9 +81,9 @@ class DataFetcher:
                         error_msg = str(retry_error)
                         
                         # Nếu là lỗi network hoặc timeout, thử lại
-                        if any(keyword in error_msg for keyword in ['timeout', 'connection', 'network', 'RetryError', '429']):
+                        if any(keyword in error_msg.lower() for keyword in ['timeout', 'connection', 'network', 'retryerror', '429', 'rate limit', 'too many requests', '403', '502', '503', '504']):
                             if attempt < max_retries - 1:
-                                wait_time = min(5 * (attempt + 1), 15)  # Tối đa 15 giây
+                                wait_time = min(10 * (attempt + 1), 30)  # Tăng thời gian chờ cho cloud: tối đa 30 giây
                                 time.sleep(wait_time)
                                 continue
                         else:
@@ -171,19 +171,44 @@ class DataFetcher:
                 if any(col in df.columns for col in required_cols):
                     return df
             
-            # Nếu không có dữ liệu, chỉ log lỗi nhẹ (không spam trên cloud)
+            # Nếu không có dữ liệu, hiển thị thông báo thân thiện cho user
             error_msg = str(last_error) if last_error else "Không thể kết nối API"
-            # Suppress common warnings that don't affect functionality
-            if not any(suppress in error_msg for suppress in ['RetryError', 'ValueError', 'AuthSessionMissingError']):
-                # Chỉ hiển thị thông báo ngắn gọn cho user
-                import os
-                if os.getenv('STREAMLIT_DEBUG', 'false').lower() == 'true':
-                    st.warning(f"⚠️ Debug: Không thể lấy dữ liệu cho {symbol}")
+            
+            # Phân loại lỗi và đưa ra thông báo phù hợp
+            if any(keyword in error_msg.lower() for keyword in ['403', 'rate limit', 'too many requests']):
+                st.error(f"🚫 **Không thể lấy dữ liệu cho mã {symbol}**\n\n"
+                        f"**Nguyên nhân có thể:**\n"
+                        f"- API đang bị giới hạn tốc độ (rate limit)\n"
+                        f"- Quá nhiều request cùng lúc\n\n"
+                        f"**Giải pháp:**\n"
+                        f"- Thử lại sau 30-60 giây\n"
+                        f"- Kiểm tra mã chứng khoán (VD: VNM, FPT, VIC)\n"
+                        f"- Sử dụng tính năng cache để giảm tải API")
+            elif any(keyword in error_msg.lower() for keyword in ['timeout', 'connection', 'network']):
+                st.error(f"🌐 **Lỗi kết nối mạng cho mã {symbol}**\n\n"
+                        f"**Nguyên nhân có thể:**\n"
+                        f"- Kết nối internet không ổn định\n"
+                        f"- Server API tạm thời không khả dụng\n\n"
+                        f"**Giải pháp:**\n"
+                        f"- Kiểm tra kết nối internet\n"
+                        f"- Thử lại sau vài phút\n"
+                        f"- Sử dụng mã chứng khoán khác để test")
+            else:
+                st.error(f"❌ **Không thể lấy dữ liệu cho mã {symbol}**\n\n"
+                        f"**Nguyên nhân có thể:**\n"
+                        f"- Mã chứng khoán không tồn tại hoặc đã ngừng giao dịch\n"
+                        f"- API tạm thời không khả dụng\n\n"
+                        f"**Giải pháp:**\n"
+                        f"- Kiểm tra lại mã chứng khoán (VD: VNM, FPT, VIC)\n"
+                        f"- Thử lại sau 10-15 giây\n"
+                        f"- Sử dụng tính năng 'Tổng quan thị trường' để xem danh sách mã hợp lệ")
             
             return None
             
         except Exception as e:
-            st.error(f"Lỗi khi lấy dữ liệu cho {symbol}: {str(e)}")
+            st.error(f"💥 **Lỗi hệ thống khi lấy dữ liệu cho {symbol}**\n\n"
+                    f"Chi tiết: {str(e)}\n\n"
+                    f"Vui lòng thử lại hoặc liên hệ hỗ trợ.")
             return None
     
     @st.cache_data(ttl=3600)
