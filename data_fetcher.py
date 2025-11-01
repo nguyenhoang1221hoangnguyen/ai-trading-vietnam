@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import streamlit as st
 import os
+import time
 
 # Import demo data cho fallback
 try:
@@ -97,7 +98,12 @@ class DataFetcher:
                         # Nếu là lỗi network hoặc timeout, thử lại
                         if any(keyword in error_msg.lower() for keyword in ['timeout', 'connection', 'network', 'retryerror', '429', 'rate limit', 'too many requests', '403', '502', '503', '504']):
                             if attempt < max_retries - 1:
-                                wait_time = min(10 * (attempt + 1), 30)  # Tăng thời gian chờ cho cloud: tối đa 30 giây
+                                # Kiểm tra environment để điều chỉnh wait time
+                                is_cloud = os.getenv('STREAMLIT_SHARING_MODE') or os.getenv('STREAMLIT_CLOUD')
+                                if is_cloud:
+                                    wait_time = min(10 * (attempt + 1), 30)  # Cloud: chờ lâu hơn
+                                else:
+                                    wait_time = min(2 * (attempt + 1), 5)   # Local: chờ ngắn hơn
                                 time.sleep(wait_time)
                                 continue
                         else:
@@ -185,14 +191,12 @@ class DataFetcher:
                 if any(col in df.columns for col in required_cols):
                     return df
             
-            # Nếu không có dữ liệu từ API, thử dùng demo data
-            if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+            # Chỉ sử dụng demo data khi được yêu cầu rõ ràng (không phải mặc định)
+            if DEMO_DATA_AVAILABLE and os.getenv('FORCE_DEMO_MODE', 'false').lower() == 'true':
                 try:
                     demo_df = get_demo_stock_data(symbol, period)
                     if demo_df is not None and not demo_df.empty:
-                        st.warning(f"⚠️ **Đang sử dụng dữ liệu demo cho mã {symbol}**\n\n"
-                                  f"API thực tế không khả dụng, hiển thị dữ liệu mẫu để demo ứng dụng.\n"
-                                  f"Dữ liệu này chỉ mang tính chất minh họa.")
+                        st.info(f"🔧 **Chế độ demo được kích hoạt cho mã {symbol}**")
                         return demo_df
                 except Exception as demo_error:
                     pass
@@ -200,34 +204,13 @@ class DataFetcher:
             # Nếu không có demo data, hiển thị thông báo lỗi
             error_msg = str(last_error) if last_error else "Không thể kết nối API"
             
-            # Phân loại lỗi và đưa ra thông báo phù hợp
+            # Hiển thị thông báo lỗi ngắn gọn hơn
             if any(keyword in error_msg.lower() for keyword in ['403', 'rate limit', 'too many requests']):
-                st.error(f"🚫 **Không thể lấy dữ liệu cho mã {symbol}**\n\n"
-                        f"**Nguyên nhân có thể:**\n"
-                        f"- API đang bị giới hạn tốc độ (rate limit)\n"
-                        f"- Quá nhiều request cùng lúc\n\n"
-                        f"**Giải pháp:**\n"
-                        f"- Thử lại sau 30-60 giây\n"
-                        f"- Kiểm tra mã chứng khoán (VD: VNM, FPT, VIC)\n"
-                        f"- Ứng dụng sẽ tự động chuyển sang chế độ demo nếu có thể")
+                st.error(f"🚫 **Rate limit cho mã {symbol}** - Thử lại sau 30-60 giây")
             elif any(keyword in error_msg.lower() for keyword in ['timeout', 'connection', 'network']):
-                st.error(f"🌐 **Lỗi kết nối mạng cho mã {symbol}**\n\n"
-                        f"**Nguyên nhân có thể:**\n"
-                        f"- Kết nối internet không ổn định\n"
-                        f"- Server API tạm thời không khả dụng\n\n"
-                        f"**Giải pháp:**\n"
-                        f"- Kiểm tra kết nối internet\n"
-                        f"- Thử lại sau vài phút\n"
-                        f"- Ứng dụng sẽ hiển thị dữ liệu demo nếu có thể")
+                st.error(f"🌐 **Lỗi kết nối cho mã {symbol}** - Kiểm tra internet và thử lại")
             else:
-                st.error(f"❌ **Không thể lấy dữ liệu cho mã {symbol}**\n\n"
-                        f"**Nguyên nhân có thể:**\n"
-                        f"- Mã chứng khoán không tồn tại hoặc đã ngừng giao dịch\n"
-                        f"- API tạm thời không khả dụng\n\n"
-                        f"**Giải pháp:**\n"
-                        f"- Kiểm tra lại mã chứng khoán (VD: VNM, FPT, VIC)\n"
-                        f"- Thử lại sau 10-15 giây\n"
-                        f"- Sử dụng tính năng 'Tổng quan thị trường' để xem danh sách mã hợp lệ")
+                st.error(f"❌ **Không lấy được dữ liệu cho mã {symbol}** - Kiểm tra mã CK hoặc thử lại sau")
             
             return None
             
@@ -248,8 +231,8 @@ class DataFetcher:
         except Exception as e:
             pass
         
-        # Fallback to demo data
-        if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+        # Chỉ fallback demo khi được yêu cầu rõ ràng
+        if DEMO_DATA_AVAILABLE and os.getenv('FORCE_DEMO_MODE', 'false').lower() == 'true':
             try:
                 return get_demo_company_overview(symbol)
             except Exception:
@@ -284,8 +267,8 @@ class DataFetcher:
         except Exception as e:
             pass
         
-        # Fallback to demo data
-        if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+        # Chỉ fallback demo khi được yêu cầu rõ ràng
+        if DEMO_DATA_AVAILABLE and os.getenv('FORCE_DEMO_MODE', 'false').lower() == 'true':
             try:
                 return get_demo_financial_ratios(symbol)
             except Exception:
@@ -304,8 +287,8 @@ class DataFetcher:
         except Exception as e:
             pass
         
-        # Fallback to demo data
-        if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+        # Chỉ fallback demo khi được yêu cầu rõ ràng
+        if DEMO_DATA_AVAILABLE and os.getenv('FORCE_DEMO_MODE', 'false').lower() == 'true':
             try:
                 return get_demo_all_stocks()
             except Exception:

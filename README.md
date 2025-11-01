@@ -66,7 +66,35 @@
 ### Yêu cầu hệ thống
 - Python 3.8 trở lên
 - pip hoặc conda
-- Kết nối Internet
+- Kết nối Internet (cho Real Data Mode)
+
+## 🔧 Chế độ hoạt động
+
+### 📊 Real Data Mode (Mặc định - Khuyến nghị)
+- ✅ Sử dụng dữ liệu thật từ vnstock API
+- ✅ Cập nhật theo thời gian thực
+- ✅ Phân tích chính xác thị trường hiện tại
+- ⚠️ Cần kết nối internet ổn định
+
+### 🎭 Demo Mode
+- 📋 Sử dụng dữ liệu mẫu để demo
+- 🚀 Không cần kết nối API
+- 🧪 Phù hợp để test hoặc demo ứng dụng
+
+**Chuyển đổi mode:**
+```bash
+# Chuyển sang Demo Mode
+python toggle_mode.py --mode demo
+
+# Chuyển sang Real Data Mode (mặc định)
+python toggle_mode.py --mode real
+
+# Kiểm tra trạng thái hiện tại
+python toggle_mode.py --status
+
+# Hoặc chạy interactive mode
+python toggle_mode.py
+```
 
 ### Cài đặt trên Windows (Khuyến nghị)
 
