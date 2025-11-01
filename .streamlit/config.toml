@@ -1,0 +1,30 @@
+[server]
+# Tối ưu cho Streamlit Cloud
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+# Port sẽ được Streamlit Cloud tự động set
+# port = 8501
+
+# Sử dụng polling cho cloud environments
+fileWatcherType = "poll"
+
+[browser]
+# Cài đặt browser
+gatherUsageStats = false
+# Không cần chạy trên server
+serverAddress = "localhost"
+
+[runner]
+# Tối ưu memory và performance
+fastReruns = true
+magicEnabled = true
+
+[theme]
+# Theme mặc định
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+font = "sans serif"
+
