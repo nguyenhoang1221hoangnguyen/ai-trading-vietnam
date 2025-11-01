@@ -41,27 +41,54 @@ class DataFetcher:
             else:
                 start_date = end_date - timedelta(days=365)
             
+            # Khởi tạo biến
+            df = None
+            last_error = None
+            
             # Lấy dữ liệu bằng vnstock - Quote cần symbol khi khởi tạo
             try:
                 import time
-                quote = Quote(symbol=symbol)
                 
-                # Thử với retry logic
+                # Thử với retry logic và delay tốt hơn cho cloud
                 max_retries = 3
+                
                 for attempt in range(max_retries):
                     try:
+                        # Khởi tạo Quote mới cho mỗi lần thử (tránh stale connection)
+                        quote = Quote(symbol=symbol, source='VCI')
+                        
+                        # Thêm delay trước mỗi request để tránh rate limit
+                        if attempt > 0:
+                            time.sleep(2 ** attempt)  # Exponential backoff: 2s, 4s
+                        
                         df = quote.history(
                             start=start_date.strftime('%Y-%m-%d'),
                             end=end_date.strftime('%Y-%m-%d'),
                             interval=resolution
                         )
-                        break  # Thành công, thoát vòng lặp
-                    except Exception as retry_error:
-                        if attempt < max_retries - 1:
-                            time.sleep(1)  # Đợi 1 giây trước khi thử lại
-                            continue
+                        
+                        # Kiểm tra kết quả
+                        if df is not None and not df.empty:
+                            break  # Thành công, thoát vòng lặp
                         else:
-                            raise retry_error
+                            # Nếu df rỗng, thử lại
+                            if attempt < max_retries - 1:
+                                time.sleep(1)
+                                continue
+                            
+                    except Exception as retry_error:
+                        last_error = retry_error
+                        error_msg = str(retry_error)
+                        
+                        # Nếu là lỗi network hoặc timeout, thử lại
+                        if any(keyword in error_msg for keyword in ['timeout', 'connection', 'network', 'RetryError', '429']):
+                            if attempt < max_retries - 1:
+                                wait_time = min(5 * (attempt + 1), 15)  # Tối đa 15 giây
+                                time.sleep(wait_time)
+                                continue
+                        else:
+                            # Lỗi khác, không retry
+                            break
                 
                 if df is not None and not df.empty:
                     # Chuẩn hóa tên cột
@@ -90,28 +117,68 @@ class DataFetcher:
                     
                     required_columns = ['open', 'high', 'low', 'close', 'volume']
                     if all(col in df.columns for col in required_columns):
-                        return df
+                        return df  # Trả về ngay nếu thành công
                 
             except Exception as e1:
-                # Fallback: thử với yfinance
+                last_error = e1
+                # Tiếp tục để thử fallback
+                
+            # Fallback: thử với yfinance nếu vnstock thất bại
+            if (df is None or df.empty) or (hasattr(df, 'empty') and df.empty):
                 try:
                     import yfinance as yf
                     ticker = f"{symbol}.VN"
-                    df = yf.download(ticker, start=start_date, end=end_date, interval='1d', progress=False, auto_adjust=False)
                     
-                    if df is not None and not df.empty:
-                        df.columns = df.columns.str.lower().str.replace(' ', '_')
-                        if 'adj_close' in df.columns:
-                            df['close'] = df['adj_close']
-                        df = df.sort_index()
-                        return df
+                    # Thử với retry cho yfinance
+                    max_yf_retries = 2
+                    for yf_attempt in range(max_yf_retries):
+                        try:
+                            df_yf = yf.download(
+                                ticker, 
+                                start=start_date, 
+                                end=end_date, 
+                                interval='1d', 
+                                progress=False, 
+                                auto_adjust=False
+                            )
+                            
+                            if df_yf is not None and not df_yf.empty:
+                                df_yf.columns = df_yf.columns.str.lower().str.replace(' ', '_')
+                                if 'adj_close' in df_yf.columns:
+                                    df_yf['close'] = df_yf['adj_close']
+                                df_yf = df_yf.sort_index()
+                                
+                                # Kiểm tra có đủ cột không
+                                required_cols = ['open', 'high', 'low', 'close', 'volume']
+                                if all(col in df_yf.columns for col in required_cols):
+                                    return df_yf  # Trả về ngay nếu thành công
+                                else:
+                                    df = df_yf  # Vẫn lưu để có thể xử lý sau
+                                    break
+                        except Exception as yf_error:
+                            if yf_attempt < max_yf_retries - 1:
+                                time.sleep(2)
+                                continue
+                            else:
+                                pass
+                                
                 except Exception as e2:
                     pass
-                
-                # Chỉ hiển thị warning nếu không phải là lỗi thông thường
-                error_msg = str(e1)
-                if 'RetryError' not in error_msg and 'ValueError' not in error_msg:
-                    st.warning(f"Không thể lấy dữ liệu từ vnstock cho {symbol}: {error_msg[:100]}")
+            
+            # Nếu có dữ liệu từ bất kỳ nguồn nào, trả về
+            if df is not None and not df.empty:
+                required_cols = ['open', 'high', 'low', 'close', 'volume']
+                if any(col in df.columns for col in required_cols):
+                    return df
+            
+            # Nếu không có dữ liệu, chỉ log lỗi nhẹ (không spam trên cloud)
+            error_msg = str(last_error) if last_error else "Không thể kết nối API"
+            # Suppress common warnings that don't affect functionality
+            if not any(suppress in error_msg for suppress in ['RetryError', 'ValueError', 'AuthSessionMissingError']):
+                # Chỉ hiển thị thông báo ngắn gọn cho user
+                import os
+                if os.getenv('STREAMLIT_DEBUG', 'false').lower() == 'true':
+                    st.warning(f"⚠️ Debug: Không thể lấy dữ liệu cho {symbol}")
             
             return None
             

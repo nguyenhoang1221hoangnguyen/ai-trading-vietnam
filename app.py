@@ -332,7 +332,18 @@ def show_analysis_page():
             stock_data = st.session_state.data_fetcher.get_stock_data(symbol, period=period)
             
             if stock_data is None or len(stock_data) < 20:
-                st.error(f"❌ Không thể lấy dữ liệu cho mã {symbol}. Vui lòng kiểm tra lại mã hoặc thử lại sau.")
+                st.error(f"❌ Không thể lấy dữ liệu cho mã {symbol}")
+                st.info(f"""
+                **Nguyên nhân có thể:**
+                - Mã chứng khoán không tồn tại hoặc đã ngừng giao dịch
+                - Vấn đề kết nối mạng hoặc API tạm thời không khả dụng
+                - Rate limit từ API (thử lại sau vài giây)
+                
+                **Giải pháp:**
+                - Kiểm tra lại mã chứng khoán (VD: VNM, FPT, VIC)
+                - Thử lại sau 10-15 giây
+                - Kiểm tra kết nối internet
+                """)
                 return
             
             # Lấy thông tin công ty
