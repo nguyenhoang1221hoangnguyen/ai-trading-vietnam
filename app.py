@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 import time
+import os
 
 from data_fetcher import DataFetcher
 from technical_analysis import TechnicalAnalyzer
@@ -17,6 +18,15 @@ from stock_screener import StockScreener
 from cached_stock_screener import CachedStockScreener
 from data_cache import DataCache
 from config import CHART_COLORS
+
+# Import demo data functions
+try:
+    from demo_data import is_demo_mode
+    DEMO_AVAILABLE = True
+except ImportError:
+    DEMO_AVAILABLE = False
+    def is_demo_mode():
+        return False
 
 # Cấu hình trang
 st.set_page_config(
@@ -1311,6 +1321,10 @@ def show_about_page():
 
 # Main app
 def main():
+    # Kiểm tra và hiển thị demo mode warning
+    if DEMO_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+        st.info("🔧 **Chế độ Demo**: Ứng dụng đang sử dụng dữ liệu mẫu do API thực tế không khả dụng trên Streamlit Cloud. Dữ liệu chỉ mang tính chất minh họa.")
+    
     # Sidebar
     with st.sidebar:
         st.image("https://img.icons8.com/color/96/000000/stocks.png", width=80)

@@ -1,11 +1,25 @@
 """
-Module lấy dữ liệu từ vnstock
+Module lấy dữ liệu từ vnstock với fallback demo data
 """
 
 from vnstock import Quote, Listing, Company
 import pandas as pd
 from datetime import datetime, timedelta
 import streamlit as st
+import os
+
+# Import demo data cho fallback
+try:
+    from demo_data import (
+        get_demo_stock_data, 
+        get_demo_company_overview, 
+        get_demo_financial_ratios,
+        get_demo_all_stocks,
+        is_demo_mode
+    )
+    DEMO_DATA_AVAILABLE = True
+except ImportError:
+    DEMO_DATA_AVAILABLE = False
 
 class DataFetcher:
     def __init__(self):
@@ -171,7 +185,19 @@ class DataFetcher:
                 if any(col in df.columns for col in required_cols):
                     return df
             
-            # Nếu không có dữ liệu, hiển thị thông báo thân thiện cho user
+            # Nếu không có dữ liệu từ API, thử dùng demo data
+            if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+                try:
+                    demo_df = get_demo_stock_data(symbol, period)
+                    if demo_df is not None and not demo_df.empty:
+                        st.warning(f"⚠️ **Đang sử dụng dữ liệu demo cho mã {symbol}**\n\n"
+                                  f"API thực tế không khả dụng, hiển thị dữ liệu mẫu để demo ứng dụng.\n"
+                                  f"Dữ liệu này chỉ mang tính chất minh họa.")
+                        return demo_df
+                except Exception as demo_error:
+                    pass
+            
+            # Nếu không có demo data, hiển thị thông báo lỗi
             error_msg = str(last_error) if last_error else "Không thể kết nối API"
             
             # Phân loại lỗi và đưa ra thông báo phù hợp
@@ -183,7 +209,7 @@ class DataFetcher:
                         f"**Giải pháp:**\n"
                         f"- Thử lại sau 30-60 giây\n"
                         f"- Kiểm tra mã chứng khoán (VD: VNM, FPT, VIC)\n"
-                        f"- Sử dụng tính năng cache để giảm tải API")
+                        f"- Ứng dụng sẽ tự động chuyển sang chế độ demo nếu có thể")
             elif any(keyword in error_msg.lower() for keyword in ['timeout', 'connection', 'network']):
                 st.error(f"🌐 **Lỗi kết nối mạng cho mã {symbol}**\n\n"
                         f"**Nguyên nhân có thể:**\n"
@@ -192,7 +218,7 @@ class DataFetcher:
                         f"**Giải pháp:**\n"
                         f"- Kiểm tra kết nối internet\n"
                         f"- Thử lại sau vài phút\n"
-                        f"- Sử dụng mã chứng khoán khác để test")
+                        f"- Ứng dụng sẽ hiển thị dữ liệu demo nếu có thể")
             else:
                 st.error(f"❌ **Không thể lấy dữ liệu cho mã {symbol}**\n\n"
                         f"**Nguyên nhân có thể:**\n"
@@ -219,13 +245,22 @@ class DataFetcher:
             profile = company.profile()
             if profile is not None and not profile.empty:
                 return profile
-            return None
         except Exception as e:
-            # Trả về thông tin cơ bản
-            return pd.DataFrame({
-                'symbol': [symbol],
-                'exchange': ['HOSE']
-            }, index=[0])
+            pass
+        
+        # Fallback to demo data
+        if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+            try:
+                return get_demo_company_overview(symbol)
+            except Exception:
+                pass
+        
+        # Fallback cuối cùng
+        return pd.DataFrame({
+            'symbol': [symbol],
+            'organName': [f'Công ty {symbol}'],
+            'exchange': ['HOSE']
+        }, index=[0])
     
     @st.cache_data(ttl=3600)
     def get_financial_report(_self, symbol, period='year', limit=4):
@@ -246,9 +281,17 @@ class DataFetcher:
             ratios = finance.ratio()
             if ratios is not None and not ratios.empty:
                 return ratios
-            return None
         except Exception as e:
-            return None
+            pass
+        
+        # Fallback to demo data
+        if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+            try:
+                return get_demo_financial_ratios(symbol)
+            except Exception:
+                pass
+        
+        return None
     
     @st.cache_data(ttl=86400)  # Cache 24 giờ
     def get_all_stocks(_self):
@@ -258,11 +301,19 @@ class DataFetcher:
             companies = listing.all_symbols()
             if companies is not None and not companies.empty:
                 return companies
-            return None
         except Exception as e:
-            # Trả về danh sách mẫu nếu không lấy được
-            return pd.DataFrame({
-                'symbol': ['VNM', 'FPT', 'VIC', 'HPG', 'VHM', 'VCB', 'VRE', 'MSN', 'PLX', 'TCB', 'GAS', 'MWG', 'SSI', 'VJC'],
-                'organName': ['Vinamilk', 'FPT', 'Vingroup', 'Hoa Phat', 'Vinhomes', 'Vietcombank', 'Vincom Retail', 'Microsoft', 'Petrolimex', 'Techcombank', 'PV Gas', 'Mobile World', 'SSI', 'VietJet'],
-                'exchange': ['HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE']
-            })
+            pass
+        
+        # Fallback to demo data
+        if DEMO_DATA_AVAILABLE and (is_demo_mode() or os.getenv('STREAMLIT_CLOUD_FALLBACK', 'true').lower() == 'true'):
+            try:
+                return get_demo_all_stocks()
+            except Exception:
+                pass
+        
+        # Fallback cuối cùng
+        return pd.DataFrame({
+            'symbol': ['VNM', 'FPT', 'VIC', 'HPG', 'VHM', 'VCB', 'VRE', 'MSN', 'PLX', 'TCB', 'GAS', 'MWG', 'SSI', 'VJC'],
+            'organName': ['Vinamilk', 'FPT', 'Vingroup', 'Hoa Phat', 'Vinhomes', 'Vietcombank', 'Vincom Retail', 'Masan', 'Petrolimex', 'Techcombank', 'PV Gas', 'Mobile World', 'SSI', 'VietJet'],
+            'exchange': ['HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE', 'HOSE']
+        })
