@@ -68,24 +68,87 @@
 - pip hoặc conda
 - Kết nối Internet
 
-### Các bước cài đặt
+### Cài đặt trên Windows (Khuyến nghị)
 
-1. **Clone repository hoặc tải xuống mã nguồn**
+**Cách 1: Sử dụng script tự động (Đơn giản nhất)**
 
-```bash
-git clone https://github.com/yourusername/ai-trading.git
-cd ai-trading
+1. **Clone repository về máy**
+```cmd
+git clone https://github.com/nguyenhoang1221hoangnguyen/ai-trading-vietnam.git
+cd ai-trading-vietnam
 ```
 
-2. **Cài đặt các thư viện cần thiết**
+2. **Chạy file cài đặt tự động**
+   - Double-click vào file `setup.bat`
+   - Hoặc mở Command Prompt và chạy:
+   ```cmd
+   setup.bat
+   ```
+   
+   Script sẽ tự động:
+   - ✅ Kiểm tra Python
+   - ✅ Tạo virtual environment
+   - ✅ Cài đặt tất cả dependencies
+   - ✅ Hoàn tất trong 2-5 phút
 
+3. **Chạy ứng dụng**
+   - Double-click vào file `run.bat`
+   - Hoặc chạy lệnh:
+   ```cmd
+   run.bat
+   ```
+
+**Cách 2: Cài đặt thủ công**
+
+1. **Clone repository hoặc tải xuống mã nguồn**
+```bash
+git clone https://github.com/nguyenhoang1221hoangnguyen/ai-trading-vietnam.git
+cd ai-trading-vietnam
+```
+
+2. **Tạo virtual environment (khuyến nghị)**
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python -m venv venv
+source venv/bin/activate
+```
+
+3. **Cài đặt các thư viện cần thiết**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Chạy ứng dụng**
-
+4. **Chạy ứng dụng**
 ```bash
+streamlit run app.py
+```
+
+### Cài đặt trên macOS/Linux
+
+1. **Clone repository**
+```bash
+git clone https://github.com/nguyenhoang1221hoangnguyen/ai-trading-vietnam.git
+cd ai-trading-vietnam
+```
+
+2. **Tạo virtual environment và cài đặt**
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+3. **Chạy ứng dụng**
+```bash
+# Sử dụng script
+chmod +x run.sh
+./run.sh
+
+# Hoặc chạy trực tiếp
 streamlit run app.py
 ```
 
