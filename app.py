@@ -8,7 +8,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 import time
-import os
 
 from data_fetcher import DataFetcher
 from technical_analysis import TechnicalAnalyzer
@@ -18,15 +17,6 @@ from stock_screener import StockScreener
 from cached_stock_screener import CachedStockScreener
 from data_cache import DataCache
 from config import CHART_COLORS
-
-# Import demo data functions
-try:
-    from demo_data import is_demo_mode
-    DEMO_AVAILABLE = True
-except ImportError:
-    DEMO_AVAILABLE = False
-    def is_demo_mode():
-        return False
 
 # Cấu hình trang
 st.set_page_config(
@@ -342,18 +332,7 @@ def show_analysis_page():
             stock_data = st.session_state.data_fetcher.get_stock_data(symbol, period=period)
             
             if stock_data is None or len(stock_data) < 20:
-                st.error(f"❌ Không thể lấy dữ liệu cho mã {symbol}")
-                st.info(f"""
-                **Nguyên nhân có thể:**
-                - Mã chứng khoán không tồn tại hoặc đã ngừng giao dịch
-                - Vấn đề kết nối mạng hoặc API tạm thời không khả dụng
-                - Rate limit từ API (thử lại sau vài giây)
-                
-                **Giải pháp:**
-                - Kiểm tra lại mã chứng khoán (VD: VNM, FPT, VIC)
-                - Thử lại sau 10-15 giây
-                - Kiểm tra kết nối internet
-                """)
+                st.error(f"❌ Không thể lấy dữ liệu cho mã {symbol}. Vui lòng kiểm tra lại mã hoặc thử lại sau.")
                 return
             
             # Lấy thông tin công ty
@@ -1321,10 +1300,6 @@ def show_about_page():
 
 # Main app
 def main():
-    # Chỉ hiển thị demo warning khi được kích hoạt rõ ràng
-    if DEMO_AVAILABLE and os.getenv('FORCE_DEMO_MODE', 'false').lower() == 'true':
-        st.info("🔧 **Chế độ Demo**: Ứng dụng đang sử dụng dữ liệu mẫu để demo. Để sử dụng dữ liệu thật, hãy tắt FORCE_DEMO_MODE.")
-    
     # Sidebar
     with st.sidebar:
         st.image("https://img.icons8.com/color/96/000000/stocks.png", width=80)

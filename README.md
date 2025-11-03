@@ -66,117 +66,26 @@
 ### Yêu cầu hệ thống
 - Python 3.8 trở lên
 - pip hoặc conda
-- Kết nối Internet (cho Real Data Mode)
+- Kết nối Internet
 
-## 🔧 Chế độ hoạt động
-
-### 📊 Real Data Mode (Mặc định - Khuyến nghị)
-- ✅ Sử dụng dữ liệu thật từ vnstock API
-- ✅ Cập nhật theo thời gian thực
-- ✅ Phân tích chính xác thị trường hiện tại
-- ⚠️ Cần kết nối internet ổn định
-
-### 🎭 Demo Mode
-- 📋 Sử dụng dữ liệu mẫu để demo
-- 🚀 Không cần kết nối API
-- 🧪 Phù hợp để test hoặc demo ứng dụng
-
-**Chuyển đổi mode:**
-```bash
-# Chuyển sang Demo Mode
-python toggle_mode.py --mode demo
-
-# Chuyển sang Real Data Mode (mặc định)
-python toggle_mode.py --mode real
-
-# Kiểm tra trạng thái hiện tại
-python toggle_mode.py --status
-
-# Hoặc chạy interactive mode
-python toggle_mode.py
-```
-
-### Cài đặt trên Windows (Khuyến nghị)
-
-**Cách 1: Sử dụng script tự động (Đơn giản nhất)**
-
-1. **Clone repository về máy**
-```cmd
-git clone https://github.com/nguyenhoang1221hoangnguyen/ai-trading-vietnam.git
-cd ai-trading-vietnam
-```
-
-2. **Chạy file cài đặt tự động**
-   - Double-click vào file `setup.bat`
-   - Hoặc mở Command Prompt và chạy:
-   ```cmd
-   setup.bat
-   ```
-   
-   Script sẽ tự động:
-   - ✅ Kiểm tra Python
-   - ✅ Tạo virtual environment
-   - ✅ Cài đặt tất cả dependencies
-   - ✅ Hoàn tất trong 2-5 phút
-
-3. **Chạy ứng dụng**
-   - Double-click vào file `run.bat`
-   - Hoặc chạy lệnh:
-   ```cmd
-   run.bat
-   ```
-
-**Cách 2: Cài đặt thủ công**
+### Các bước cài đặt
 
 1. **Clone repository hoặc tải xuống mã nguồn**
+
 ```bash
-git clone https://github.com/nguyenhoang1221hoangnguyen/ai-trading-vietnam.git
-cd ai-trading-vietnam
+git clone https://github.com/yourusername/ai-trading.git
+cd ai-trading
 ```
 
-2. **Tạo virtual environment (khuyến nghị)**
+2. **Cài đặt các thư viện cần thiết**
+
 ```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# macOS/Linux
-python -m venv venv
-source venv/bin/activate
-```
-
-3. **Cài đặt các thư viện cần thiết**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Chạy ứng dụng**
-```bash
-streamlit run app.py
-```
-
-### Cài đặt trên macOS/Linux
-
-1. **Clone repository**
-```bash
-git clone https://github.com/nguyenhoang1221hoangnguyen/ai-trading-vietnam.git
-cd ai-trading-vietnam
-```
-
-2. **Tạo virtual environment và cài đặt**
-```bash
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
 ```
 
 3. **Chạy ứng dụng**
-```bash
-# Sử dụng script
-chmod +x run.sh
-./run.sh
 
-# Hoặc chạy trực tiếp
+```bash
 streamlit run app.py
 ```
 

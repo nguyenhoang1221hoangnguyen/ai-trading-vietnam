@@ -37,13 +37,26 @@ wheels/
 .DS_Store
 Thumbs.db
 
-# Data
-*.csv
-*.xlsx
-*.xls
-data/
-*.db
-*.sqlite
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation (tùy chọn - có thể giữ lại)
+# *.md
+# README.md
+
+# Data files (sẽ được mount từ host)
+# *.db
+# *.sqlite
+# *.csv
+# *.xlsx
+# data/
 
 # Logs
 *.log
@@ -51,4 +64,9 @@ data/
 # Environment
 .env
 .env.local
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
 

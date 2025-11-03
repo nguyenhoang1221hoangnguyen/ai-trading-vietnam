@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  ai-trading:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-trading-app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Persist database cache
+      - ./data_cache:/app/data_cache
+      # Mount code (optional, để hot-reload trong development)
+      # - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.docker.compose.project=ai-trading"
+      - "description=AI Trading - Ứng dụng phân tích chứng khoán Việt Nam"
+
